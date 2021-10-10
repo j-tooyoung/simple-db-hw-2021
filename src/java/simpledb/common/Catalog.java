@@ -110,6 +110,9 @@ public class Catalog {
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
         // some code goes here
+        if (!tableMap.containsKey(tableid)) {
+            throw new NoSuchElementException("");
+        }
         return tableMap.get(tableid).tupleDesc;
     }
 
