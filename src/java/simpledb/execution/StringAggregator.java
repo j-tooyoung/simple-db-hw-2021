@@ -1,7 +1,13 @@
 package simpledb.execution;
 
 import simpledb.common.Type;
-import simpledb.storage.Tuple;
+import simpledb.storage.*;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Knows how to compute some aggregate over a set of StringFields.
@@ -9,6 +15,13 @@ import simpledb.storage.Tuple;
 public class StringAggregator implements Aggregator {
 
     private static final long serialVersionUID = 1L;
+
+    private int gbfield;
+    private Type gbfieldType;
+    private int afield;
+    private Op aggregationOp;
+
+    private GbHandler hanlder;
 
     /**
      * Aggregate constructor
@@ -21,6 +34,15 @@ public class StringAggregator implements Aggregator {
 
     public StringAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
         // some code goes here
+        this.gbfield = gbfield;
+        this.gbfieldType = gbfieldtype;
+        this.afield = afield;
+        this.aggregationOp = what;
+        if (what == Op.COUNT) {
+            hanlder = new CountHandler();
+        } else {
+            throw new UnsupportedOperationException("operator it don't meet require " + what);
+        }
     }
 
     /**
@@ -29,6 +51,10 @@ public class StringAggregator implements Aggregator {
      */
     public void mergeTupleIntoGroup(Tuple tup) {
         // some code goes here
+        StringField field = (StringField) tup.getField(afield);
+        Field gbField = tup.getField(gbfield);
+        String key = gbField.toString();
+        hanlder.handle(key, field);
     }
 
     /**
@@ -41,7 +67,61 @@ public class StringAggregator implements Aggregator {
      */
     public OpIterator iterator() {
         // some code goes here
-        throw new UnsupportedOperationException("please implement me for lab2");
+        TupleDesc td;
+
+        List<Tuple> tuples = new ArrayList<>();
+        Set<Map.Entry<String, Integer>> entrySet = hanlder.getGbResult().entrySet();
+        if (gbfield == NO_GROUPING) {
+            Type[] typeAr = new Type[]{Type.INT_TYPE};
+            String[] fieldAr = new String[1];
+            fieldAr[0] = "aggregateVal";
+            td = new TupleDesc(typeAr, fieldAr);
+            for (Map.Entry<String, Integer> entry : entrySet) {
+                Tuple e = new Tuple(td);
+                e.setField(0, new IntField(entry.getValue()));
+                tuples.add(e);
+            }
+        } else {
+            Type[] typeAr = new Type[]{Type.INT_TYPE, Type.INT_TYPE};
+            String[] fieldAr = new String[]{
+                    "groupVal", "aggregateVal"};
+            td = new TupleDesc(typeAr, fieldAr);
+            for (Map.Entry<String, Integer> entry : entrySet) {
+                Tuple e = new Tuple(td);
+                e.setField(0, new IntField(Integer.parseInt(entry.getKey())));
+                e.setField(1, new IntField(entry.getValue()));
+                tuples.add(e);
+            }
+        }
+
+        return new TupleIterator(td, tuples);
+    }
+
+    private abstract class GbHandler {
+
+        Map<String, Integer> gbResult;
+
+        /**
+         * @param key   group by 字段
+         * @param field 聚集函数计算字段
+         */
+        abstract void handle(String key, Field field);
+
+        public GbHandler() {
+            gbResult = new ConcurrentHashMap<>();
+        }
+
+        public Map<String, Integer> getGbResult() {
+            return gbResult;
+        }
+    }
+
+    private class CountHandler extends GbHandler {
+
+        @Override
+        void handle(String key, Field field) {
+            gbResult.put(key, gbResult.getOrDefault(key, 0) + 1);
+        }
     }
 
 }

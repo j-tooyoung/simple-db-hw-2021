@@ -82,6 +82,7 @@ public class Join extends Operator {
         child1.open();
         child2.open();
         int t1numFields = child1.getTupleDesc().numFields();
+//        todo 算法复杂度过高待优化
         while (child1.hasNext()) {
             Tuple t1 = child1.next();
             while (child2.hasNext()) {
