@@ -33,6 +33,8 @@ public class TupleIterator implements OpIterator {
                 throw new IllegalArgumentException(
                         "incompatible tuple in tuple set");
         }
+//        todo i如何初始化
+        i = tuples.iterator();
     }
 
     public void open() {

@@ -25,10 +25,11 @@ public class StringAggregator implements Aggregator {
 
     /**
      * Aggregate constructor
-     * @param gbfield the 0-based index of the group-by field in the tuple, or NO_GROUPING if there is no grouping
+     *
+     * @param gbfield     the 0-based index of the group-by field in the tuple, or NO_GROUPING if there is no grouping
      * @param gbfieldtype the type of the group by field (e.g., Type.INT_TYPE), or null if there is no grouping
-     * @param afield the 0-based index of the aggregate field in the tuple
-     * @param what aggregation operator to use -- only supports COUNT
+     * @param afield      the 0-based index of the aggregate field in the tuple
+     * @param what        aggregation operator to use -- only supports COUNT
      * @throws IllegalArgumentException if what != COUNT
      */
 
@@ -40,6 +41,8 @@ public class StringAggregator implements Aggregator {
         this.aggregationOp = what;
         if (what == Op.COUNT) {
             hanlder = new CountHandler();
+        } else if (what == Op.SUM) {
+            hanlder = new SumHandler();
         } else {
             throw new UnsupportedOperationException("operator it don't meet require " + what);
         }
@@ -47,11 +50,12 @@ public class StringAggregator implements Aggregator {
 
     /**
      * Merge a new tuple into the aggregate, grouping as indicated in the constructor
+     *
      * @param tup the Tuple containing an aggregate field and a group-by field
      */
     public void mergeTupleIntoGroup(Tuple tup) {
         // some code goes here
-        StringField field = (StringField) tup.getField(afield);
+        Field field =  tup.getField(afield);
         Field gbField = tup.getField(gbfield);
         String key = gbField.toString();
         hanlder.handle(key, field);
@@ -61,9 +65,9 @@ public class StringAggregator implements Aggregator {
      * Create a OpIterator over group aggregate results.
      *
      * @return a OpIterator whose tuples are the pair (groupVal,
-     *   aggregateVal) if using group, or a single (aggregateVal) if no
-     *   grouping. The aggregateVal is determined by the type of
-     *   aggregate specified in the constructor.
+     * aggregateVal) if using group, or a single (aggregateVal) if no
+     * grouping. The aggregateVal is determined by the type of
+     * aggregate specified in the constructor.
      */
     public OpIterator iterator() {
         // some code goes here
@@ -82,13 +86,13 @@ public class StringAggregator implements Aggregator {
                 tuples.add(e);
             }
         } else {
-            Type[] typeAr = new Type[]{Type.INT_TYPE, Type.INT_TYPE};
+            Type[] typeAr = new Type[]{Type.STRING_TYPE, Type.INT_TYPE};
             String[] fieldAr = new String[]{
                     "groupVal", "aggregateVal"};
             td = new TupleDesc(typeAr, fieldAr);
             for (Map.Entry<String, Integer> entry : entrySet) {
                 Tuple e = new Tuple(td);
-                e.setField(0, new IntField(Integer.parseInt(entry.getKey())));
+                e.setField(0, new StringField(entry.getKey(), 100));
                 e.setField(1, new IntField(entry.getValue()));
                 tuples.add(e);
             }
@@ -96,32 +100,4 @@ public class StringAggregator implements Aggregator {
 
         return new TupleIterator(td, tuples);
     }
-
-    private abstract class GbHandler {
-
-        Map<String, Integer> gbResult;
-
-        /**
-         * @param key   group by 字段
-         * @param field 聚集函数计算字段
-         */
-        abstract void handle(String key, Field field);
-
-        public GbHandler() {
-            gbResult = new ConcurrentHashMap<>();
-        }
-
-        public Map<String, Integer> getGbResult() {
-            return gbResult;
-        }
-    }
-
-    private class CountHandler extends GbHandler {
-
-        @Override
-        void handle(String key, Field field) {
-            gbResult.put(key, gbResult.getOrDefault(key, 0) + 1);
-        }
-    }
-
 }

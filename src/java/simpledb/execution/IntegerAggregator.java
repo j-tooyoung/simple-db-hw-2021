@@ -1,12 +1,9 @@
 package simpledb.execution;
 
-import simpledb.common.DbException;
 import simpledb.common.Type;
 import simpledb.storage.*;
-import simpledb.transaction.TransactionAbortedException;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Knows how to compute some aggregate over a set of IntFields.
@@ -40,29 +37,14 @@ public class IntegerAggregator implements Aggregator {
         this.afield = afield;
         this.aggregationOp = what;
         switch (what) {
-            case MIN:
-                hanlder = new MinHandler();
-                break;
-            case MAX:
-                hanlder = new MaxHandler();
-                break;
-            case COUNT:
-                hanlder = new CountHandler();
-                break;
-            case AVG:
-                hanlder = new AvgHandler();
-                break;
-            case SUM:
-                hanlder = new SumHandler();
-                break;
-            case SUM_COUNT:
-                hanlder = new SumCountHandler();
-                break;
-            case SC_AVG:
-                hanlder = new ScAvgHandler();
-                break;
-            default:
-                throw new UnsupportedOperationException("operator it don't meet require " + what);
+            case MIN -> hanlder = new MinHandler();
+            case MAX -> hanlder = new MaxHandler();
+            case COUNT -> hanlder = new CountHandler();
+            case AVG -> hanlder = new AvgHandler();
+            case SUM -> hanlder = new SumHandler();
+            case SUM_COUNT -> hanlder = new SumCountHandler();
+            case SC_AVG -> hanlder = new ScAvgHandler();
+            default -> throw new UnsupportedOperationException("operator it don't meet require " + what);
         }
     }
 
@@ -76,7 +58,7 @@ public class IntegerAggregator implements Aggregator {
      */
     public void mergeTupleIntoGroup(Tuple tup) {
         // some code goes here
-        IntField field = (IntField) tup.getField(afield);
+        Field field = tup.getField(afield);
         Field gbField = tup.getField(gbfield);
         String key = gbField == null ? NO_GROUPING_KEY : gbField.toString();
         hanlder.handle(key, field);
@@ -120,109 +102,5 @@ public class IntegerAggregator implements Aggregator {
         }
 
         return new TupleIterator(td, tuples);
-    }
-
-    private abstract class GbHandler {
-
-        Map<String, Integer> gbResult;
-
-        /**
-         * @param key   group by 字段
-         * @param field 聚集函数计算字段
-         */
-        abstract void handle(String key, Field field);
-
-        public GbHandler() {
-            gbResult = new ConcurrentHashMap<>();
-        }
-
-        public Map<String, Integer> getGbResult() {
-            return gbResult;
-        }
-    }
-
-    private class MinHandler extends GbHandler {
-        @Override
-        void handle(String key, Field field) {
-            int val = Integer.parseInt(field.toString());
-            if (gbResult.containsKey(key)) {
-                gbResult.put(key, Math.min(val, gbResult.get(key)));
-            } else {
-                gbResult.put(key, val);
-            }
-        }
-    }
-
-    private class MaxHandler extends GbHandler {
-
-        @Override
-        void handle(String key, Field field) {
-            int val = Integer.parseInt(field.toString());
-            if (gbResult.containsKey(key)) {
-                gbResult.put(key, Math.max(val, gbResult.get(key)));
-            } else {
-                gbResult.put(key, val);
-            }
-        }
-    }
-
-    private class AvgHandler extends GbHandler {
-
-        private Map<String, Integer> sumMap;
-        private Map<String, Integer> cntMap;
-
-        private AvgHandler() {
-            this.sumMap = new ConcurrentHashMap<>();
-            this.cntMap = new ConcurrentHashMap<>();
-        }
-
-        @Override
-        void handle(String key, Field field) {
-            int val = Integer.parseInt(field.toString());
-            if (sumMap.containsKey(key)) {
-                sumMap.put(key, val + sumMap.get(key));
-            } else {
-                sumMap.put(key, val);
-            }
-            cntMap.put(key, cntMap.getOrDefault(key, 0) + 1);
-            gbResult.put(key, sumMap.get(key) / cntMap.get(key));
-        }
-    }
-
-    private class SumHandler extends GbHandler {
-
-        @Override
-        void handle(String key, Field field) {
-            int val = Integer.parseInt(field.toString());
-            if (gbResult.containsKey(key)) {
-                gbResult.put(key, val + gbResult.get(key));
-            } else {
-                gbResult.put(key, val);
-            }
-        }
-    }
-
-    private class SumCountHandler extends GbHandler {
-
-        @Override
-        void handle(String key, Field field) {
-
-        }
-    }
-
-    private class ScAvgHandler extends GbHandler {
-
-        @Override
-        void handle(String key, Field field) {
-
-        }
-    }
-
-    private class CountHandler extends GbHandler {
-
-        @Override
-        void handle(String key, Field field) {
-            gbResult.put(key, gbResult.getOrDefault(key, 0) + 1);
-        }
     }
 }
