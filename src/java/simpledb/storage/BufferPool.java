@@ -10,6 +10,7 @@ import simpledb.transaction.TransactionId;
 import java.io.*;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,7 +58,23 @@ public class BufferPool {
     public BufferPool(int numPages) {
         // some code goes here
         pagesCnt = numPages;
-        pageMap = new ConcurrentHashMap<>();
+        pageMap = new LinkedHashMap<>() {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<PageId, Page> eldest) {
+                boolean flag = size() > numPages;
+                if (flag) {
+                    Page page = eldest.getValue();
+                    if (page.isDirty() != null) {
+                        try {
+                            flushPage(page.getId());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                return flag;
+            }
+        };
         this.dirtyPage = new HashMap<>();
     }
 
@@ -222,6 +239,7 @@ public class BufferPool {
     public synchronized void discardPage(PageId pid) {
         // some code goes here
         // not necessary for lab1
+
     }
 
     /**
@@ -232,6 +250,10 @@ public class BufferPool {
     private synchronized void flushPage(PageId pid) throws IOException {
         // some code goes here
         // not necessary for lab1
+        Page page = pageMap.get(pid);
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+        dbFile.writePage(page);
+        page.markDirty(false, null);
     }
 
     /**
@@ -240,6 +262,9 @@ public class BufferPool {
     public synchronized void flushPages(TransactionId tid) throws IOException {
         // some code goes here
         // not necessary for lab1|lab2
+        for (Page page : pageMap.values()) {
+            flushPage(page.getId());
+        }
     }
 
     /**
