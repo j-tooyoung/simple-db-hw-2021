@@ -212,7 +212,6 @@ public class HeapFile implements DbFile {
                 if (page < (heapFile.numPages() - 1)) {
                     page++;
                     iterator = getPageTuples(page);
-//                     todo ?
                     return iterator.hasNext();
                 } else {
                     return false;

@@ -106,6 +106,9 @@ public class IntHistogram {
                 return 1.0 - estimateSelectivity(Predicate.Op.GREATER_THAN, v);
             }
             case EQUALS -> {
+                if (v > max || v < min) {
+                    return 0.0;
+                }
                 return bucketArray[idx] * 1.0 / tupleCnts;
             }
             case NOT_EQUALS -> {
