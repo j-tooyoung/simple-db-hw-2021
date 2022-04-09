@@ -72,7 +72,7 @@ public class QueryTest {
 		t.start();
 		Parser p = new Parser();
 		p.setTransaction(t);
-		
+//		todo 测试用例未通过
 		// Each of these should return around 20,000
 		// This Parser implementation currently just dumps to stdout, so checking that isn't terribly clean.
 		// So, don't bother for now; future TODO.

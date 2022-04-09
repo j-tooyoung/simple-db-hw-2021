@@ -52,8 +52,7 @@ public class Join extends Operator {
      * */
     public String getJoinField1Name() {
         // some code goes here
-        int field1 = joinPredicate.getField1();
-        return child1.getTupleDesc().getFieldName(field1);
+        return td.getFieldName(joinPredicate.getField1());
     }
 
     /**
@@ -63,8 +62,8 @@ public class Join extends Operator {
      * */
     public String getJoinField2Name() {
         // some code goes here
-        int field2 = joinPredicate.getField2();
-        return child2.getTupleDesc().getFieldName(field2);
+        return td.getFieldName(joinPredicate.getField2());
+
     }
 
     /**

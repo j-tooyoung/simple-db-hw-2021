@@ -158,7 +158,7 @@ public class OperatorCardinality {
 
         String[] tmp1 = j.getJoinField1Name().split("[.]");
         String tableAlias1 = tmp1[0];
-        String pureFieldName1 = tmp1[1];
+        String pureFieldName1 = tmp1[0];
         String[] tmp2 = j.getJoinField2Name().split("[.]");
         String tableAlias2 = tmp2[0];
         String pureFieldName2 = tmp2[1];

@@ -240,7 +240,29 @@ public class JoinOptimizer {
 
         // some code goes here
         //Replace the following
-        return joins;
+        CostCard costCard = new CostCard();
+        PlanCache cache = new PlanCache();
+        for (int i = 0; i <= joins.size(); i++) {
+            Set<Set<LogicalJoinNode>> subsets = enumerateSubsets(joins, i);
+            for (Set<LogicalJoinNode> subset : subsets) {
+                double bestCost = Double.MAX_VALUE;
+                for (LogicalJoinNode node : subset) {
+                    CostCard costCard1 = computeCostAndCardOfSubplan(stats, filterSelectivities, node, subset, bestCost, cache);
+                    if (costCard1 == null) {
+                        continue;
+                    }
+                    bestCost = costCard1.cost;
+                    costCard = costCard1;
+                }
+                if (bestCost != Double.MAX_VALUE) {
+                    cache.addPlan(subset, bestCost, costCard.card, costCard.plan);
+                }
+            }
+        }
+        if (explain) {
+            printJoins(costCard.plan, cache, stats, filterSelectivities);
+        }
+        return costCard.plan;
     }
 
     // ===================== Private Methods =================================
